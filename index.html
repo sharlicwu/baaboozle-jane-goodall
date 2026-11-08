@@ -325,11 +325,11 @@ const ACTIONS = [                         /* 8 function cards */
   {kind:"first",  emoji:"🥇", label:"First Place"}
 ];
 const TEAMS = [
-  {name:"Red",    color:"#ef4444", score:0, coins:0},
-  {name:"Blue",   color:"#3b82f6", score:0, coins:0},
-  {name:"Green",  color:"#22c55e", score:0, coins:0},
-  {name:"Purple", color:"#a855f7", score:0, coins:0},
-  {name:"Yellow", color:"#eab308", score:0, coins:0}
+  {name:"Anna",   color:"#ef4444", score:0, coins:0},
+  {name:"Blake",  color:"#3b82f6", score:0, coins:0},
+  {name:"Edison", color:"#22c55e", score:0, coins:0},
+  {name:"Henry",  color:"#a855f7", score:0, coins:0},
+  {name:"Fred",   color:"#eab308", score:0, coins:0}
 ];
 const MEDALS = ["🥇","🥈","🥉","4th","5th"];
 
@@ -394,6 +394,22 @@ function sfxFirst(){ if(!soundOn) return;                          /* 🥇 take 
   tone(1046.50,.30,.75,"sawtooth",.12);
   [523.25,659.25,783.99,1046.50].forEach(f=>tone(f,.34,.70,"square",.06));
 }
+/* ── final-card vamp: starts the moment the LAST card flips (before it is finished),
+      loops as a tension pulse until the award fanfare takes over at the 4s pause ── */
+let finalVamp = null;
+function sfxFinalVamp(){
+  if(finalVamp || gameOver) return;
+  const beat = ()=>{
+    if(!soundOn) return;
+    tone(65.41,0,.22,"sine",.20,49);          /* heartbeat low   */
+    tone(65.41,.16,.18,"sine",.15,49);
+    tone(130.81,.34,.30,"triangle",.09);      /* root swell      */
+    noise(0,.10,.08,400);                     /* soft kick       */
+  };
+  beat();
+  finalVamp = setInterval(beat, 1000);
+}
+function stopFinalVamp(){ if(finalVamp){ clearInterval(finalVamp); finalVamp = null; } }
 function sfxSteal(){ if(!soundOn) return; tone(600,0,.7,"sine",.2,120); tone(300,.1,.65,"sine",.12,80); tone(150,.18,.5,"triangle",.14,60); }
 function sfxBomb(){ if(!soundOn) return;
   noise(0,.55,.55,700); noise(.05,.4,.35,260);
@@ -531,6 +547,7 @@ function flip(i){
   boardEl.children[i].classList.add("q");
   sfxClick();
   lock = true;
+  if(isLastCard()) sfxFinalVamp();   /* end is near: start the music BEFORE the last card finishes */
   if(c.type === "word") startWord(c, i); else doAction(c, i);
 }
 
@@ -700,7 +717,7 @@ function nextTurn(endDelay){
     hideBar();                    // never leave a Next button up: re-pressing would queue extra end-game timers
     if(endTimer) clearTimeout(endTimer);
     /* the 4s pause IS the "game over" cue: start the award music now (once), it lands on the reveal */
-    if(!endTimer && !gameOver) sfxFanfare();
+    if(!endTimer && !gameOver){ stopFinalVamp(); sfxFanfare(); }
     endTimer = setTimeout(function(){ endTimer = null; endGame(); }, endDelay || 0);
     return;
   }
@@ -770,6 +787,7 @@ function reset(){
   );
   TEAMS.forEach(t=>{ t.score = 0; t.coins = 0; });
   if(endTimer){ clearTimeout(endTimer); endTimer = null; }
+  stopFinalVamp();
   cur = 0; used = 0; lock = false; waiting = false; gameOver = false; q = null;
   modalEl.classList.remove("show");
   hideBar();
